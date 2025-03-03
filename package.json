@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@browserbasehq/stagehand": "^1.13.1",
+    "@langchain/community": "^0.3.33",
+    "@langchain/langgraph": "^0.2.51",
+    "@langchain/openai": "^0.4.4",
+    "stagehand": "^1.0.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
