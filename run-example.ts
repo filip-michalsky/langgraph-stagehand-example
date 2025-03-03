@@ -9,7 +9,7 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 async function main() {
   // Initialize Stagehand once and pass it to the tools
   const stagehand = new Stagehand({
-    env: "LOCAL",
+    env: "LOCAL", // or "BROWSERBASE" for Browserbase remote browser
     enableCaching: true,
     headless: false, // Set to false to see the browser
     verbose: 1, // Set verbosity level
