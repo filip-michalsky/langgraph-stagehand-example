@@ -54,8 +54,4 @@ node run.js
 
 ## Alternative Run Method
 
-You can also run the TypeScript file directly:
-
-```bash
-npx ts-node-esm run-example.ts
-```
+You can also use the Langgraph CLI

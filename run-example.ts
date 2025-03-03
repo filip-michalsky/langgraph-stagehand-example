@@ -10,7 +10,7 @@ async function main() {
   // Initialize Stagehand once and pass it to the tools
   const stagehand = new Stagehand({
     env: "LOCAL", // or "BROWSERBASE" for Browserbase remote browser
-    enableCaching: true,
+    enableCaching: false,
     headless: false, // Set to false to see the browser
     verbose: 1, // Set verbosity level
   });
@@ -25,7 +25,7 @@ async function main() {
 
   // Initialize the model
   const model = new ChatOpenAI({
-    modelName: "gpt-4",
+    modelName: "gpt-4o",
     temperature: 0,
   });
 
