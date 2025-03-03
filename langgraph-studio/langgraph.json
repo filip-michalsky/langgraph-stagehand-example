@@ -1,0 +1,7 @@
+{
+    "graphs": {
+      "test-agent": "./lazy.ts:testAgent"
+    },
+    "_INTERNAL_docker_tag": "20",
+    "env": "../.env.local"
+  }

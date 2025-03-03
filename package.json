@@ -1,5 +1,10 @@
 {
   "type": "module",
+  "scripts": {
+    "build:local": "tsc local-langgraph/run-example.ts --outDir ./dist --module NodeNext",
+    "start:local": "node local-langgraph/run.js",
+    "start:studio": "npx @langchain/langgraph-cli dev"
+  },
   "dependencies": {
     "@browserbasehq/stagehand": "^1.13.1",
     "@langchain/community": "^0.3.33",
@@ -8,6 +13,7 @@
     "stagehand": "^1.0.1"
   },
   "devDependencies": {
+    "@langchain/langgraph-cli": "^0.0.22",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }
