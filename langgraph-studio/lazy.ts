@@ -3,10 +3,21 @@ import { Stagehand } from "@browserbasehq/stagehand";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import {
-    Tool
+    Tool,
+    StructuredTool
   } from "@langchain/core/tools";
+import { AnyZodObject } from "zod";
+import { z } from "zod";
 
-  
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message: unknown }).message === "string"
+  );
+}
+
 export class LazyStagehand {
     private stagehand: Stagehand;
     private initialized: Promise<void>;
@@ -17,7 +28,7 @@ export class LazyStagehand {
             enableCaching: true,
         });
         // Start initialization in the background
-        this.initialized = this.stagehand.init().then(() => {});
+        this.initialized = this.stagehand.init({ modelName: "gpt-4o" }).then(() => {});
     }
 
     getStagehand() {
@@ -89,7 +100,7 @@ export class StagehandNavigateTool extends StagehandToolBase {
   
     async _call(input: string): Promise<string> {
       const stagehand = await this.getStagehand();
-      const result = await stagehand.act({ action: input });
+      const result = await stagehand.page.act({ action: input });
       if (result.success) {
         return `Action performed successfully: ${result.message}`;
       } else {
@@ -97,21 +108,101 @@ export class StagehandNavigateTool extends StagehandToolBase {
       }
     }
   }
+export class StagehandExtractTool extends StructuredTool {
+    name = "stagehand_extract";
+  
+    description =
+      "Use this tool to extract structured information from the current web page using Stagehand. The input should include an 'instruction' string and a 'schema' object representing the extraction schema in JSON Schema format. You have to pass in both the instruction and the schema.";
+  
+    schema = z.object({
+      instruction: z.string().describe("Instruction on what to extract"),
+      schema: z
+        .record(z.any())
+        .describe("Extraction schema in JSON Schema format"),
+    });
+
+    protected stagehand?: LazyStagehand;
+    protected localStagehand?: LazyStagehand;
+    private logger?: Logger;
+
+    constructor(stagehandInstance?: LazyStagehand) {
+        super();
+        this.stagehand = stagehandInstance;
+    }
+    protected async getStagehand(): Promise<Stagehand> {
+      if (this.stagehand) {
+          await this.stagehand.ensureInitialized();
+          return this.stagehand.getStagehand();
+      }
+
+      if (!this.localStagehand) {
+          this.localStagehand = new LazyStagehand();
+          await this.localStagehand.ensureInitialized();
+      }
+      return this.localStagehand.getStagehand();
+  }
+  
+    async _call(input: {
+      instruction: string;
+      schema: AnyZodObject; 
+    }): Promise<string> {
+      try {
+        const stagehand = await this.getStagehand();
+        console.log("stagehand", stagehand);
+        console.log(">>input to extract", input);
+        const { instruction, schema } = input;
+        console.log(">>instruction", instruction);
+        console.log(">>schema", schema);
+  
+        const result = await stagehand.page.extract({
+          instruction,
+          schema,
+        });
+        console.log(">>result", result);
+        return JSON.stringify(result);
+      } catch (error: unknown) {
+        const message = isErrorWithMessage(error) ? error.message : String(error);
+        return `Failed to extract information: ${message}`;
+      }
+    }
+  }
+  
+export class StagehandObserveTool extends StagehandToolBase {
+    name = "stagehand_observe";
+  
+    description =
+      "Use this tool to observe the current web page and retrieve possible actions using Stagehand. The input can be an optional instruction string.";
+  
+    async _call(input: string): Promise<string> {
+      try {
+        const stagehand = await this.getStagehand();
+        const instruction = input ? input : undefined;
+  
+        const result = await stagehand.page.observe({ instruction });
+        return JSON.stringify(result);
+      } catch (error: unknown) {
+        const message = isErrorWithMessage(error) ? error.message : String(error);
+        return `Failed to observe: ${message}`;
+      }
+    }
+  }
 
 const lazyStagehand = new LazyStagehand();
 const actTool = new StagehandActTool(lazyStagehand);
 const navigateTool = new StagehandNavigateTool(lazyStagehand);
+const extractTool = new StagehandExtractTool(lazyStagehand);
+const observeTool = new StagehandObserveTool(lazyStagehand);
 
 // Initialize the model
 const model = new ChatOpenAI({
-    modelName: "gpt-4",
+    modelName: "gpt-4o",
     temperature: 0,
 });
 
 // Create the agent using langgraph
 const testAgent = createReactAgent({
     llm: model,
-    tools: [actTool, navigateTool],
+    tools: [actTool, navigateTool, extractTool, observeTool],
 });
 
 export { testAgent };
